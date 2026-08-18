@@ -16,6 +16,8 @@ router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
+router.post('/reset-password/:token', resetPassword);
+router.put('/reset-password/:token', resetPassword);
 
 // Protected routes
 router.get('/me', protect, getMe);
