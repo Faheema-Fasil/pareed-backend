@@ -9,6 +9,8 @@ import inquiryRoutes from './inquiry.routes.js';
 import settingRoutes from './setting.routes.js';
 import dashboardRoutes from './dashboard.routes.js';
 import uploadRoutes from './upload.routes.js';
+import { getSectionSetting, updateSectionSetting } from '../controllers/setting.controller.js';
+import { protect } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
@@ -19,6 +21,16 @@ router.get('/health', (req, res) => {
     message: 'Pareed API Server is running healthy',
     timestamp: new Date().toISOString(),
   });
+});
+
+// Direct Mission & Vision routes
+router.get('/mission-vision', (req, res, next) => {
+  req.params.section = 'mission-vision';
+  getSectionSetting(req, res, next);
+});
+router.put('/mission-vision', protect, (req, res, next) => {
+  req.params.section = 'mission-vision';
+  updateSectionSetting(req, res, next);
 });
 
 // Mount sub-routes

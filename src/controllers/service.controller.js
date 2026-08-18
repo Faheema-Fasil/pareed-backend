@@ -1,4 +1,107 @@
 import Service from '../models/service.model.js';
+import ServiceCategory from '../models/serviceCategory.model.js';
+
+/**
+ * @desc    Get all available service categories/tags
+ * @route   GET /api/services/categories, GET /api/services/tags
+ * @access  Public
+ */
+export const getServiceCategories = async (req, res, next) => {
+  try {
+    // 1. Fetch persistent categories from database
+    const savedCategories = await ServiceCategory.find({}).sort({ name: 1 });
+    const categorySet = new Set();
+
+    savedCategories.forEach((c) => {
+      if (c.name && c.name.trim()) categorySet.add(c.name.trim().toUpperCase());
+    });
+
+    // 2. Also harvest any categories currently used in Service documents
+    const distinctServiceCats = await Service.distinct('category');
+    const distinctServiceTags = await Service.distinct('tag');
+
+    [...distinctServiceCats, ...distinctServiceTags].forEach((cat) => {
+      if (cat && typeof cat === 'string' && cat.trim()) {
+        categorySet.add(cat.trim().toUpperCase());
+      }
+    });
+
+    const categoryList = Array.from(categorySet);
+
+    res.status(200).json({
+      success: true,
+      count: categoryList.length,
+      data: categoryList,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Add a new service category/tag option
+ * @route   POST /api/services/categories, POST /api/services/tags
+ * @access  Private/Admin
+ */
+export const addServiceCategory = async (req, res, next) => {
+  try {
+    const rawName = req.body.name || req.body.category || req.body.tag;
+
+    if (!rawName || !rawName.toString().trim()) {
+      res.status(400);
+      throw new Error('Please provide a category/tag name');
+    }
+
+    const name = rawName.toString().trim().toUpperCase();
+
+    // Check or upsert
+    let category = await ServiceCategory.findOne({ name });
+    if (!category) {
+      category = await ServiceCategory.create({ name });
+    }
+
+    // Return the updated full list of options
+    const allSaved = await ServiceCategory.find({}).sort({ name: 1 });
+    const categorySet = new Set();
+    allSaved.forEach((c) => categorySet.add(c.name.trim().toUpperCase()));
+
+    const distinctServiceCats = await Service.distinct('category');
+    const distinctServiceTags = await Service.distinct('tag');
+    [...distinctServiceCats, ...distinctServiceTags].forEach((cat) => {
+      if (cat && typeof cat === 'string' && cat.trim()) {
+        categorySet.add(cat.trim().toUpperCase());
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Category "${name}" added successfully`,
+      data: Array.from(categorySet),
+      category,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * @desc    Delete a custom service category/tag
+ * @route   DELETE /api/services/categories/:name
+ * @access  Private/Admin
+ */
+export const deleteServiceCategory = async (req, res, next) => {
+  try {
+    const name = decodeURIComponent(req.params.name).trim().toUpperCase();
+    await ServiceCategory.deleteOne({ name });
+
+    res.status(200).json({
+      success: true,
+      message: `Category "${name}" removed from options`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 /**
  * @desc    Get all services
@@ -46,10 +149,13 @@ export const getServiceById = async (req, res, next) => {
  */
 export const createService = async (req, res, next) => {
   try {
-    const { number, title, description, image, order } = req.body;
+    const { number, category, tag, title, description, image, order } = req.body;
+    const resolvedCategory = (category || tag || '').toString().trim().toUpperCase();
 
     const service = await Service.create({
       number: number || '01',
+      category: resolvedCategory,
+      tag: resolvedCategory,
       title: title || 'New Service',
       description: description || '',
       image: image || '',
@@ -72,6 +178,12 @@ export const createService = async (req, res, next) => {
  */
 export const updateService = async (req, res, next) => {
   try {
+    if (req.body.category !== undefined || req.body.tag !== undefined) {
+      const cat = (req.body.category || req.body.tag || '').toString().trim().toUpperCase();
+      req.body.category = cat;
+      req.body.tag = cat;
+    }
+
     const service = await Service.findByIdAndUpdate(req.params.id, req.body, {
       returnDocument: 'after',
       runValidators: true,
@@ -107,13 +219,18 @@ export const bulkSaveServices = async (req, res, next) => {
 
     await Service.deleteMany({});
 
-    const formatted = services.map((s, idx) => ({
-      number: s.number || String(idx + 1).padStart(2, '0'),
-      title: s.title || `Service #${idx + 1}`,
-      description: s.description || '',
-      image: s.image || '',
-      order: idx,
-    }));
+    const formatted = services.map((s, idx) => {
+      const cat = (s.category || s.tag || '').toString().trim().toUpperCase();
+      return {
+        number: s.number || String(idx + 1).padStart(2, '0'),
+        category: cat,
+        tag: cat,
+        title: s.title || `Service #${idx + 1}`,
+        description: s.description || '',
+        image: s.image || '',
+        order: s.order !== undefined ? s.order : idx,
+      };
+    });
 
     const savedServices = await Service.insertMany(formatted);
 

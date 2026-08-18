@@ -7,6 +7,18 @@ const serviceSchema = new mongoose.Schema(
       required: [true, 'Please provide badge number'],
       default: '01',
     },
+    category: {
+      type: String,
+      default: '',
+      trim: true,
+      uppercase: true,
+    },
+    tag: {
+      type: String,
+      default: '',
+      trim: true,
+      uppercase: true,
+    },
     title: {
       type: String,
       required: [true, 'Please provide service title'],

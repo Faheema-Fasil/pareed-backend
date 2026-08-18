@@ -37,6 +37,25 @@ const DEFAULT_SETTINGS = {
     establishedYear: '1990',
     imageUrl: '',
   },
+  'mission-vision': {
+    eyebrow: 'Our Direction',
+    title: 'Mission & Vision',
+    missionTitle: 'Fresh seafood. Reliable service.',
+    missionDescription:
+      'To provide fresh and premium seafood with reliable service and competitive wholesale pricing across the UAE.',
+    visionTitle: 'A trusted seafood supplier in the UAE.',
+    visionDescription:
+      'To become a leading and trusted seafood wholesale supplier in the UAE, known for quality, reliability and customer satisfaction.',
+  },
+};
+
+// Normalize section aliases (e.g. missionVision -> mission-vision)
+const normalizeSectionKey = (key = '') => {
+  const clean = key.toLowerCase().replace(/_/g, '-');
+  if (clean === 'mission' || clean === 'missionvision' || clean === 'mission-vision') {
+    return 'mission-vision';
+  }
+  return clean;
 };
 
 /**
@@ -69,7 +88,8 @@ export const getAllSettings = async (req, res, next) => {
  */
 export const getSectionSetting = async (req, res, next) => {
   try {
-    const { section } = req.params;
+    const rawSection = req.params.section;
+    const section = normalizeSectionKey(rawSection);
     const doc = await Setting.findOne({ key: section });
 
     const data = doc ? doc.data : DEFAULT_SETTINGS[section] || {};
@@ -91,7 +111,8 @@ export const getSectionSetting = async (req, res, next) => {
  */
 export const updateSectionSetting = async (req, res, next) => {
   try {
-    const { section } = req.params;
+    const rawSection = req.params.section;
+    const section = normalizeSectionKey(rawSection);
     const incomingData = req.body;
 
     const doc = await Setting.findOneAndUpdate(
