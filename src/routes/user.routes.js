@@ -3,14 +3,16 @@ import {
   getUsers,
   getUserById,
   updateUserProfile,
+  updateUserPassword,
   deleteUser,
 } from '../controllers/user.controller.js';
 import { protect, authorizeAdmin } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
 
-// User profile route (Protected)
+// User profile & password routes (Protected)
 router.put('/profile', protect, updateUserProfile);
+router.put('/password', protect, updateUserPassword);
 
 // Admin-only user management routes
 router.get('/', protect, authorizeAdmin, getUsers);

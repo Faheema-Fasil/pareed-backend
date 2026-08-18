@@ -6,6 +6,7 @@ import {
   forgotPassword,
   resetPassword,
 } from '../controllers/auth.controller.js';
+import { updateUserProfile, updateUserPassword } from '../controllers/user.controller.js';
 import { protect } from '../middlewares/auth.middleware.js';
 
 const router = express.Router();
@@ -18,5 +19,9 @@ router.post('/reset-password', resetPassword);
 
 // Protected routes
 router.get('/me', protect, getMe);
+router.put('/me', protect, updateUserProfile);
+router.put('/profile', protect, updateUserProfile);
+router.put('/updatedetails', protect, updateUserProfile);
+router.put('/updatepassword', protect, updateUserPassword);
 
 export default router;
