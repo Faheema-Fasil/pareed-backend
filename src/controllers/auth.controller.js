@@ -201,6 +201,8 @@ If you did not request this email, please safely ignore it.
 </div>
     `;
 
+    console.log(`\n🔑 [Password Reset Link Generated]:\n${resetUrl}\nOTP Code: ${otpCode}\n`);
+
     try {
       await sendEmail({
         email: user.email,
@@ -211,16 +213,27 @@ If you did not request this email, please safely ignore it.
 
       res.status(200).json({
         success: true,
-        message: `If an account exists with ${email}, a password reset link has been dispatched.`,
+        message: `If an account exists with ${email}, a password reset link has been dispatched to your email.`,
       });
     } catch (err) {
-      console.error('[Forgot Password Email Error]:', err);
+      console.error('[Forgot Password Email Error]:', err?.message || err);
+
+      // In development, return success or a friendly message with fallback link in console
+      if (process.env.NODE_ENV === 'development') {
+        res.status(200).json({
+          success: true,
+          message: 'Reset link generated. (Check server terminal for console fallback link if email was delayed).',
+          resetUrl,
+        });
+        return;
+      }
+
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
       await user.save({ validateBeforeSave: false });
 
       res.status(500);
-      throw new Error('Email delivery failed. Please check SMTP configuration.');
+      throw new Error('Email delivery failed. Please check Gmail configuration.');
     }
   } catch (error) {
     next(error);
